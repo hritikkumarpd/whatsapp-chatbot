@@ -46,14 +46,24 @@ function show_menu() {
     clear 2>/dev/null || true
     CURRENT_STATUS=$(get_status)
     LOCAL_IP=$(get_local_ip)
+    AUTH_TOKEN=$(grep -o '"authToken": "[^"]*' server/config.json 2>/dev/null | cut -d'"' -f4)
+    if [ -z "$AUTH_TOKEN" ]; then
+        AUTH_TOKEN=$(node -e "try { console.log(JSON.parse(require('fs').readFileSync('server/config.json')).authToken || ''); } catch {}" 2>/dev/null)
+    fi
     
     echo -e "${BLUE}====================================================${RESET}"
-    echo -e "${GREEN}${BOLD}         🤖 WaBot Pro — Termux Manager             ${RESET}"
+    echo -e "${GREEN}${BOLD}       🤖 WhatsApp ChatBot — Termux Manager         ${RESET}"
     echo -e "${BLUE}====================================================${RESET}"
     echo -e " Service Status : $CURRENT_STATUS"
     echo -e " Local Web UI   : ${CYAN}http://localhost:4000${RESET}"
     if [ -n "$LOCAL_IP" ]; then
-    echo -e " Network/Wi-Fi  : ${CYAN}http://${LOCAL_IP}:4000${RESET}"
+    echo -e " Network IP     : ${CYAN}http://${LOCAL_IP}:4000${RESET}"
+    fi
+    if [ -n "$AUTH_TOKEN" ]; then
+    echo -e " Access Token   : ${YELLOW}${AUTH_TOKEN}${RESET}"
+    if [ -n "$LOCAL_IP" ]; then
+    echo -e " PC Direct Link : ${CYAN}http://${LOCAL_IP}:4000/?token=${AUTH_TOKEN}${RESET}"
+    fi
     fi
     echo -e "${BLUE}----------------------------------------------------${RESET}"
     echo -e " ${BOLD}[1]${RESET} 🚀 Start Bot (Background 24/7)"
@@ -65,7 +75,8 @@ function show_menu() {
     echo -e " ${BOLD}[7]${RESET} 🌐 Open Dashboard in Phone Browser"
     echo -e " ${BOLD}[8]${RESET} ⚡ Setup Auto-Start on Phone Boot (Termux:Boot)"
     echo -e " ${BOLD}[9]${RESET} 🧠 Test Gemini AI Reply in Terminal"
-    echo -e " ${BOLD}[10]${RESET} 🔑 Configure Gemini AI API Key (or press 'k')"
+    echo -e " ${BOLD}[10]${RESET} 🔑 Configure Gemini AI API Key (or 'k')"
+    echo -e " ${BOLD}[11]${RESET} 🔐 Show Access Token for PC Login (or 't')"
     echo -e " ${BOLD}[0]${RESET} 🚪 Exit"
     echo -e "${BLUE}====================================================${RESET}"
 }
@@ -260,7 +271,7 @@ function test_gemini() {
 # Master Loop
 while true; do
     show_menu
-    read -rp "Choose an option [0-10 or k]: " OPTION
+    read -rp "Choose an option [0-11, k, or t]: " OPTION
     case "$OPTION" in
         1) start_bot ;;
         2) stop_bot ;;
@@ -272,6 +283,7 @@ while true; do
         8) setup_boot ;;
         9) test_gemini ;;
         10|k|K) node cli.js key; read -rp "Press Enter to return..." ;;
+        11|t|T) node cli.js token; read -rp "Press Enter to return..." ;;
         0) echo -e "\n${GREEN}Bye! Keep your bot running!${RESET}\n"; exit 0 ;;
         *) echo -e "${RED}Invalid option!${RESET}"; sleep 1 ;;
     esac

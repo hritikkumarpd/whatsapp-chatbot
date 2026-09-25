@@ -74,6 +74,20 @@ async function getToken() {
   }
 }
 
+// Get secret auth token from loopback API or config.json
+async function getAuthToken() {
+  let token = await getToken();
+  if (!token) {
+    try {
+      if (fs.existsSync(CONFIG_FILE)) {
+        const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+        token = cfg.authToken;
+      }
+    } catch { }
+  }
+  return token;
+}
+
 // Check server health probe
 async function getHealth() {
   try {
@@ -243,12 +257,19 @@ async function showStatus() {
   console.log(` System RAM  : ${c.dim}${Math.round(os.freemem() / 1024 / 1024)}MB free / ${Math.round(os.totalmem() / 1024 / 1024)}MB total${c.reset}`);
 
   if (health) {
+    const token = await getAuthToken();
     console.log(` Process     : ${c.brightGreen}● RUNNING${c.reset} (PID: ${pid || 'active on :4000'})`);
     console.log(` Uptime      : ${Math.floor(health.uptime / 60)}m ${health.uptime % 60}s`);
     console.log(` WhatsApp    : ${state?.status === 'connected' ? `${c.brightGreen}CONNECTED ✅ (+${state.phone} - ${state.profileName})${c.reset}` : `${c.brightYellow}${state?.status || health.status}${c.reset}`}`);
     console.log(` Dashboard   : ${c.brightCyan}${BASE_URL}${c.reset}`);
+    if (token) {
+      console.log(` Auth Token  : ${c.brightYellow}${token}${c.reset}`);
+    }
     if (ips.length > 0) {
       console.log(` Network IP  : ${c.brightCyan}http://${ips[0]}:4000${c.reset}`);
+      if (token) {
+        console.log(` PC Link     : ${c.brightCyan}http://${ips[0]}:4000/?token=${token}${c.reset}`);
+      }
     }
     if (state?.stats) {
       console.log(` Messages In : ${state.stats.received || 0} | Replied: ${state.stats.replied || 0} | Errors: ${state.stats.errors || 0}`);
@@ -256,6 +277,29 @@ async function showStatus() {
   } else {
     console.log(` Process     : ${c.brightRed}○ STOPPED${c.reset}`);
     console.log(` Port 4000   : Inactive`);
+  }
+  console.log(`${c.brightBlue}====================================================${c.reset}\n`);
+}
+
+// Display Access Token and Remote Access Links
+async function showTokenInfo() {
+  const token = await getAuthToken();
+  const ips = getNetworkIps();
+
+  console.log(`\n${c.brightBlue}====================================================${c.reset}`);
+  console.log(`${c.brightGreen}${c.bold}           🔑 Web Dashboard Access Token            ${c.reset}`);
+  console.log(`${c.brightBlue}====================================================${c.reset}`);
+  if (token) {
+    console.log(` Secret Token   : ${c.brightYellow}${token}${c.reset}`);
+    console.log(`\n ${c.bold}To access from your PC browser (without entering token manually):${c.reset}`);
+    if (ips.length > 0) {
+      console.log(` 👉 ${c.brightCyan}http://${ips[0]}:4000/?token=${token}${c.reset}\n`);
+    } else {
+      console.log(` 👉 ${c.brightCyan}http://<your-phone-ip>:4000/?token=${token}${c.reset}\n`);
+    }
+    console.log(` ${c.dim}Or open http://<phone-ip>:4000 and paste the secret token into the prompt.${c.reset}`);
+  } else {
+    console.log(`${c.brightRed}❌ Token not found. Start the bot first with 'wabot start'.${c.reset}`);
   }
   console.log(`${c.brightBlue}====================================================${c.reset}\n`);
 }
@@ -520,10 +564,17 @@ async function runInteractiveMenu() {
     console.log(`${c.brightBlue}====================================================${c.reset}`);
     console.log(` Status     : ${health ? `${c.brightGreen}● RUNNING (PID: ${pid || 'active'})${c.reset}` : `${c.brightRed}○ STOPPED${c.reset}`}`);
     if (health) {
+      const token = await getAuthToken();
       console.log(` WhatsApp   : ${state?.status === 'connected' ? `${c.brightGreen}CONNECTED ✅ (+${state.phone})${c.reset}` : `${c.brightYellow}${state?.status || 'connecting'}${c.reset}`}`);
       console.log(` Local UI   : ${c.brightCyan}${BASE_URL}${c.reset}`);
+      if (token) {
+        console.log(` Auth Token : ${c.brightYellow}${token}${c.reset}`);
+      }
       if (ips.length > 0) {
         console.log(` Network IP : ${c.brightCyan}http://${ips[0]}:4000${c.reset}`);
+        if (token) {
+          console.log(` PC Link    : ${c.brightCyan}http://${ips[0]}:4000/?token=${token}${c.reset}`);
+        }
       }
     }
     console.log(`${c.brightBlue}----------------------------------------------------${c.reset}`);
@@ -537,10 +588,11 @@ async function runInteractiveMenu() {
     console.log(` ${c.bold}[8]${c.reset} 🧠 Test Gemini AI Reply`);
     console.log(` ${c.bold}[9]${c.reset} 📋 Stream Live Activity Logs`);
     console.log(` ${c.bold}[10]${c.reset} 🌐 Open Dashboard in Default Browser`);
+    console.log(` ${c.bold}[11]${c.reset} 🔐 Show Access Token for PC Login (or 't')`);
     console.log(` ${c.bold}[0]${c.reset} 🚪 Exit CLI`);
     console.log(`${c.brightBlue}====================================================${c.reset}`);
 
-    const choice = (await promptChoice(`${c.bold}Choose an option [0-10 or k]: ${c.reset}`)).trim();
+    const choice = (await promptChoice(`${c.bold}Choose an option [0-11, k, or t]: ${c.reset}`)).trim();
 
     if (choice === '1') {
       await startServer();
@@ -575,6 +627,9 @@ async function runInteractiveMenu() {
       openBrowser(BASE_URL);
       console.log(`${c.green}Opening ${BASE_URL}...${c.reset}`);
       await new Promise((r) => setTimeout(r, 1000));
+    } else if (choice === '11' || choice.toLowerCase() === 't') {
+      await showTokenInfo();
+      await promptChoice('\nPress Enter to return...');
     } else if (choice === '0') {
       console.log(`\n${c.brightGreen}Keep your bot active! Goodbye.${c.reset}\n`);
       rl.close();
@@ -611,6 +666,11 @@ switch (command) {
   case 'set-key':
   case 'api-key':
     await configureGeminiKey(args[1]);
+    break;
+  case 'token':
+  case 'auth':
+  case 'get-token':
+    await showTokenInfo();
     break;
   case 'logs':
     viewLogs();
