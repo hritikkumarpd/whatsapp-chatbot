@@ -1,0 +1,32 @@
+{
+  "name": "whatsapp-chatbot",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "wabot": "./cli.js"
+  },
+  "description": "WhatsApp AI Auto-Reply & Automation Suite (Self-hosted, Termux & 24/7 background ready)",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "cli": "node cli.js",
+    "dev": "node --watch server/src/index.js",
+    "test": "npm --prefix server test",
+    "build": "npm --prefix web run build",
+    "install:all": "npm --prefix server install && npm --prefix web install",
+    "termux": "bash termux.sh",
+    "setup": "bash setup.sh",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "keywords": [
+    "whatsapp",
+    "gemini",
+    "bot",
+    "auto-reply",
+    "termux",
+    "baileys"
+  ],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,21 @@
+{
+  "name": "wabot-local-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local single-user WhatsApp AI auto-reply server (Baileys + Gemini).",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test test/**/*.test.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@whiskeysockets/baileys": "^6.7.9",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "pino": "^9.5.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1"
+  }
+}

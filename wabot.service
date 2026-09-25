@@ -1,0 +1,44 @@
+# ========================================================
+# WaBot Pro — Systemd 24/7 Background Service Unit
+# For: Ubuntu, Debian, CentOS, Fedora, Arch, Raspberry Pi OS
+# ========================================================
+#
+# Installation Steps:
+# 1. Edit User and WorkingDirectory below to match your system:
+#      User=pi  (or ubuntu / root / your_username)
+#      WorkingDirectory=/home/pi/wabot  (path to this folder)
+# 2. Copy to systemd:
+#      sudo cp wabot.service /etc/systemd/system/
+# 3. Reload daemon and enable on boot:
+#      sudo systemctl daemon-reload
+#      sudo systemctl enable --now wabot
+# 4. Check status & logs:
+#      sudo systemctl status wabot
+#      journalctl -u wabot -f
+# ========================================================
+
+[Unit]
+Description=WaBot Pro - WhatsApp AI Automation Daemon
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/wabot
+ExecStart=/usr/bin/node server/src/index.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=NODE_ENV=production
+Environment=PORT=4000
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# Sandboxing & Resource constraints for stability on Raspberry Pi / Low-RAM VPS
+LimitNOFILE=65535
+MemoryMax=400M
+
+[Install]
+WantedBy=multi-user.target
