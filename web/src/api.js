@@ -9,21 +9,6 @@ try {
   cachedToken = localStorage.getItem('wabot_token') || '';
 } catch {}
 
-// Automatically capture ?token= from URL if present (useful for remote VPS / Domain setup)
-if (typeof window !== 'undefined') {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('token');
-    if (urlToken && urlToken.trim()) {
-      cachedToken = urlToken.trim();
-      localStorage.setItem('wabot_token', cachedToken);
-      // Clean query parameter from URL to prevent token leakage in history or screenshots
-      const cleanUrl = window.location.pathname + window.location.hash;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-  } catch {}
-}
-
 const authListeners = new Set();
 function notifyAuthRequired() {
   authListeners.forEach((fn) => {
