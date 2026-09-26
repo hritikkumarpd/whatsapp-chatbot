@@ -20,7 +20,8 @@
     "docker:down": "docker compose down",
     "web:verify": "node scripts/ensure-web-build.mjs",
     "web:repair": "node scripts/ensure-web-build.mjs --repair",
-    "prestart": "node scripts/ensure-web-build.mjs --repair"
+    "prestart": "node scripts/ensure-web-build.mjs --repair",
+    "doctor": "node scripts/doctor.mjs"
   },
   "keywords": [
     "whatsapp",
