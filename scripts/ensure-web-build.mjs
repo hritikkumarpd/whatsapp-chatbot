@@ -69,6 +69,29 @@ function needsBuild(currentHash) {
 }
 
 const repair = process.argv.includes('--repair');
+
+// Docker/packaged deployments may intentionally contain only web/dist.
+// Validate the packaged build when the frontend source tree is not shipped.
+if (!fs.existsSync(webDir) || !fs.existsSync(path.join(webDir, 'src'))) {
+  const index = path.join(distDir, 'index.html');
+  if (!fs.existsSync(index)) {
+    console.error('✗ Dashboard is missing: web/dist/index.html was not found.');
+    process.exit(1);
+  }
+  const html = fs.readFileSync(index, 'utf8');
+  const assets = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((v) => v.startsWith('/assets/'));
+  const missing = assets.filter((asset) => !fs.existsSync(path.join(distDir, asset.slice(1))));
+  if (missing.length) {
+    console.error('✗ Dashboard build references missing assets:');
+    missing.forEach((asset) => console.error(`  - ${asset}`));
+    process.exit(1);
+  }
+  console.log('✓ Packaged dashboard build verified.');
+  process.exit(0);
+}
+
 const hash = sourceHash();
 
 if (!needsBuild(hash)) {
