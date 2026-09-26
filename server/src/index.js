@@ -90,7 +90,17 @@ const isBehindProxy =
   process.env.BEHIND_PROXY === 'true';
 app.set('trust proxy', isBehindProxy ? 'loopback' : false);
 app.disable('x-powered-by');
-app.use(helmet({ crossOriginEmbedderPolicy: false }));
+// Do not force HTTP deployments to HTTPS at the browser layer.
+// HTTPS is normally terminated by the reverse proxy in production; relative
+// asset URLs should remain same-origin for both HTTP (local/testing) and HTTPS.
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      upgradeInsecureRequests: null,
+    },
+  },
+}));
 
 // Standard HTTP Security Headers (anti-clickjacking, anti-MIME-sniffing, etc.)
 app.use((_req, res, next) => {
