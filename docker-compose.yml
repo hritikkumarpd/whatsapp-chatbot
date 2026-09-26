@@ -21,10 +21,20 @@ services:
     volumes:
       # Persistent WhatsApp authentication session
       - ./server/auth:/app/server/auth
-      # Persistent configuration (rules, model, prompts)
-      - ./server/config.json:/app/server/config.json
+      # Persistent configuration (copy server/config.example.json to server/config.json first)
+      - type: bind
+        source: ./server/config.json
+        target: /app/server/config.json
+        bind:
+          create_host_path: false
       # Logs
       - ./server/logs:/app/server/logs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:4000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
