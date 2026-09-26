@@ -117,7 +117,10 @@ bash setup.sh
 ```
 
 #### Running as a background systemd service:
+Create a dedicated unprivileged service user first:
 ```bash
+sudo useradd --system --home /opt/wabot --shell /usr/sbin/nologin wabot
+sudo chown -R wabot:wabot /opt/wabot
 sudo cp wabot.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now wabot
@@ -126,6 +129,8 @@ sudo systemctl enable --now wabot
 sudo systemctl status wabot
 journalctl -u wabot -f
 ```
+
+The service intentionally does **not** run as root and uses systemd filesystem/network hardening.
 
 #### Using PM2:
 ```bash
