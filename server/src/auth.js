@@ -26,10 +26,6 @@ function presentedToken(req) {
     return auth.slice(7).trim();
   }
 
-  if (typeof req.query?.token === 'string' && req.query.token.trim()) {
-    return req.query.token.trim();
-  }
-
   return '';
 }
 
