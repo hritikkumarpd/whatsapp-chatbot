@@ -18,7 +18,8 @@ module.exports = {
   apps: [
     {
       name: 'wabot',
-      script: 'server/src/index.js',
+      script: 'npm',
+      args: 'start',
       cwd: __dirname,
       instances: 1,
       exec_mode: 'fork',
