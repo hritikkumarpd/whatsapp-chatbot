@@ -88,7 +88,7 @@ async function callModel(ai, modelName, systemInstruction, history, userText, te
 export async function generateReply({
   jid,
   apiKey,
-  model = 'gemini-flash-latest',
+  model = 'gemini-3.5-flash-lite',
   systemPrompt,
   userText,
   quotedText = '',
@@ -118,7 +118,7 @@ export async function generateReply({
       const ai = new GoogleGenAI({ apiKey });
 
       const primary = model || 'gemini-3.5-flash-lite';
-      const fallbackList = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+      const fallbackList = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'];
       const candidates = [primary, ...fallbackList].filter((m, i, a) => a.indexOf(m) === i);
 
       // Session timeout check & LRU management
@@ -240,7 +240,7 @@ export async function simulateChat({
   const safeMessage = String(message || '').slice(0, 4000);
   const ai = new GoogleGenAI({ apiKey });
   const primary = model || 'gemini-3.5-flash-lite';
-  const candidates = [primary, 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-latest']
+  const candidates = [primary, 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']
     .filter((m, i, a) => a.indexOf(m) === i);
 
   let reply = null;
