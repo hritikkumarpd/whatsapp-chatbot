@@ -1,6 +1,7 @@
 import './safety.js';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
@@ -16,7 +17,7 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import { getConfig, saveConfig } from './config.js';
 import { requireAuth, socketAuth, isLoopbackIp, rateLimit } from './auth.js';
-import { redactSecrets, escapeRegExp, JidLoopBreaker } from './security.js';
+import { redactSecrets, escapeRegExp, JidLoopBreaker, validateConfigPatch } from './security.js';
 import {
   generateReply,
   verifyApiKey,
@@ -24,7 +25,6 @@ import {
   clearChatHistory,
   getActiveSessionCount,
 } from './gemini.js';
-import { freePort, isPortOccupied } from './port.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
@@ -86,7 +86,9 @@ const app = express();
 const isBehindProxy =
   process.env.TRUST_PROXY === 'true' ||
   process.env.BEHIND_PROXY === 'true';
-app.set('trust proxy', isBehindProxy);
+app.set('trust proxy', isBehindProxy ? 'loopback' : false);
+app.disable('x-powered-by');
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
 // Standard HTTP Security Headers (anti-clickjacking, anti-MIME-sniffing, etc.)
 app.use((_req, res, next) => {
@@ -99,18 +101,25 @@ app.use((_req, res, next) => {
 });
 
 // Strict CORS protection against Drive-By Localhost Attacks
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (isOriginAllowed(origin)) {
-        cb(null, true);
-      } else {
-        cb(new Error(`CORS blocked for unauthorized origin: ${origin}`));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors((req, callback) => {
+  const origin = req.get('Origin');
+  if (!origin) return callback(null, { origin: false });
+
+  const forwardedProto = String(req.get('X-Forwarded-Proto') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol;
+  const sameOrigin = origin === protocol + '://' + req.get('host');
+
+  if (sameOrigin || isOriginAllowed(origin)) {
+    return callback(null, {
+      origin,
+      credentials: true,
+      methods: ['GET', 'HEAD', 'POST', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Token', 'X-WaBot-Token'],
+      maxAge: 600,
+    });
+  }
+  return callback(new Error('CORS origin not allowed'));
+}));
 
 // Bounded JSON body parsing with clean error handling
 app.use(express.json({ limit: '256kb' }));
@@ -132,15 +141,14 @@ server.on('error', (err) => {
 
 // Socket.IO with strict handshake origin & token verification
 const io = new Server(server, {
-  cors: {
-    origin: (origin, cb) => {
-      if (isOriginAllowed(origin)) {
-        cb(null, true);
-      } else {
-        cb(new Error('WebSocket origin rejected'), false);
-      }
-    },
-    credentials: true,
+  cors: { origin: true, credentials: true },
+  allowRequest: (req, callback) => {
+    const origin = req.headers.origin;
+    if (!origin) return callback(null, true);
+    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+    const protocol = forwardedProto || 'http';
+    const sameOrigin = origin === protocol + '://' + (req.headers.host || '');
+    callback(null, sameOrigin || isOriginAllowed(origin));
   },
 });
 io.use(socketAuth);
@@ -729,7 +737,7 @@ app.get('/api/auth/token', async (req, res) => {
   const isLocalOrigin =
     !origin || origin.includes('localhost') || origin.includes('127.0.0.1');
 
-  if (isLocal && isLocalOrigin) {
+  if (!isBehindProxy && isLocal && isLocalOrigin) {
     const cfg = await getConfig();
     return res.json({ ok: true, token: cfg.authToken });
   }
@@ -760,11 +768,10 @@ app.get('/api/state', (_req, res) => {
 
 app.get('/api/config', async (_req, res) => {
   const cfg = await getConfig();
+  const { geminiKey, authToken, ...safeCfg } = cfg;
   res.json({
-    ...cfg,
-    geminiKeySet: !!cfg.geminiKey,
-    geminiKey: cfg.geminiKey ? `${cfg.geminiKey.slice(0, 6)}••••••••` : '',
-    authToken: `${cfg.authToken.slice(0, 4)}••••••••`,
+    ...safeCfg,
+    geminiKeySet: !!geminiKey,
   });
 });
 
@@ -830,6 +837,13 @@ app.post('/api/test-key', keyLimiter, async (req, res) => {
 app.post('/api/test-ai', aiLimiter, async (req, res) => {
   const { message, systemPrompt, model, history } = req.body;
   const cfg = await getConfig();
+  if (systemPrompt !== undefined && (typeof systemPrompt !== 'string' || systemPrompt.length > 10000)) {
+    return res.status(400).json({ error: 'systemPrompt must be a string of at most 10,000 characters' });
+  }
+  if (model !== undefined) {
+    try { validateConfigPatch({ model }); }
+    catch { return res.status(400).json({ error: 'Invalid Gemini model' }); }
+  }
   const apiKey = cfg.geminiKey;
   if (!apiKey) {
     return res.status(400).json({ error: 'Gemini API key is not configured' });
@@ -863,6 +877,16 @@ app.post('/api/clear-logs', (_req, res) => {
   logs.length = 0;
   io.emit('logs-cleared');
   res.json({ ok: true });
+});
+
+// Do not expose stack traces or internal implementation details to remote clients.
+app.use((err, _req, res, _next) => {
+  const message = redactSecrets(err?.message || '');
+  if (message.toLowerCase().includes('cors')) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' });
+  }
+  console.error('HTTP middleware error:', message);
+  return res.status(500).json({ ok: false, error: 'Internal server error' });
 });
 
 // Serve production build if present.
@@ -922,23 +946,16 @@ async function gracefulShutdown(signal) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Automatic Port Liberation: Overwrite port if already occupied
-const portInUse = await isPortOccupied(PORT);
-if (portInUse) {
-  console.log(`⚠️  [Auto-Port] Port ${PORT} is occupied by another process. Overwriting & clearing port...`);
-  freePort(PORT);
-  await new Promise((r) => setTimeout(r, 600));
-}
-
-server.on('error', async (err) => {
+server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.warn(`⚠️  [Auto-Port] Port ${PORT} busy (EADDRINUSE). Force-terminating occupant and retrying...`);
-    freePort(PORT);
-    setTimeout(() => {
-      try {
-        server.close();
-      } catch {}
-      server.listen(PORT, '0.0.0.0');
+    console.error('❌ Port ' + PORT + ' is already in use. Stop the existing instance or choose another PORT.');
+    process.exit(1);
+  }
+  console.error('❌ Server startup error:', redactSecrets(err?.message || err));
+  process.exit(1);
+});
+
+server.listen(PORT, '0.0.0.0');
     }, 1000);
   } else {
     console.error('❌ Server startup error:', err);
