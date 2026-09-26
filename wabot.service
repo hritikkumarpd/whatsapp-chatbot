@@ -5,8 +5,8 @@
 #
 # Installation Steps:
 # 1. Edit User and WorkingDirectory below to match your system:
-#      User=pi  (or ubuntu / root / your_username)
-#      WorkingDirectory=/home/pi/wabot  (path to this folder)
+#      User=wabot (dedicated unprivileged user)
+#      WorkingDirectory=/opt/wabot
 # 2. Copy to systemd:
 #      sudo cp wabot.service /etc/systemd/system/
 # 3. Reload daemon and enable on boot:
