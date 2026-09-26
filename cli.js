@@ -10,7 +10,6 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import readline from 'readline';
 import { spawn, exec, spawnSync } from 'child_process';
-import { freePort } from './server/src/port.js';
 import { getConfig, saveConfig } from './server/src/config.js';
 import { verifyApiKey } from './server/src/gemini.js';
 
@@ -166,10 +165,6 @@ async function startServer() {
     console.log(c.brightRed + '❌ Dashboard build verification failed. Server was not started.' + c.reset);
     return;
   }
-
-  // Auto-port liberation: overwrite port 4000 if occupied by a lingering/zombie process
-  freePort(4000);
-  await new Promise((r) => setTimeout(r, 600));
 
   console.log(`${c.brightBlue}🚀 Launching WaBot Server in background...${c.reset}`);
 
