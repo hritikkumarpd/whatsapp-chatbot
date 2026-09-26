@@ -14,7 +14,7 @@ RUN apk add --no-cache bash curl wget tzdata
 ENV NODE_ENV=production
 ENV PORT=4000
 ENV WABOT_ALLOW_ANY_ORIGIN=false
-ENV TRUST_PROXY=true
+ENV TRUST_PROXY=false
 
 # Copy package manifests
 COPY package.json ./
