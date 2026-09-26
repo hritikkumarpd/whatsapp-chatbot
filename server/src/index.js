@@ -949,31 +949,22 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error('❌ Port ' + PORT + ' is already in use. Stop the existing instance or choose another PORT.');
-    process.exit(1);
+  } else {
+    console.error('❌ Server startup error:', redactSecrets(err?.message || err));
   }
-  console.error('❌ Server startup error:', redactSecrets(err?.message || err));
   process.exit(1);
 });
 
-server.listen(PORT, '0.0.0.0');
-    }, 1000);
-  } else {
-    console.error('❌ Server startup error:', err);
-  }
-});
-
 server.listen(PORT, '0.0.0.0', async () => {
-  const cfg = await getConfig();
-  console.log(`\n=================================================`);
-  console.log(`🚀 WaBot Server is active & listening!`);
-  console.log(`📱 Local:              http://localhost:${PORT}`);
+  await getConfig();
+  console.log('\n=================================================');
+  console.log('🚀 WaBot Server is active & listening!');
+  console.log('📱 Local:              http://localhost:' + PORT);
   localIps.forEach((ip) => {
-    console.log(`🌐 Network / Wi-Fi:   http://${ip}:${PORT}`);
+    console.log('🌐 Network / Wi-Fi:   http://' + ip + ':' + PORT);
   });
-  console.log(`🔑 Web Access Token:  ${cfg.authToken}`);
-  console.log(`🛡️  Security:          CORS hardened, Loopback auth & Rate-limiting ACTIVE`);
-  console.log(`⚡ Port Guard:        Auto-Port Overwrite Protection ENABLED`);
-  console.log(`=================================================\n`);
+  console.log('🛡️  Security:          Authentication, CORS, WebSocket auth & rate-limiting ACTIVE');
+  console.log('=================================================\n');
 
   const credsFile = path.join(__dirname, '..', 'auth', 'creds.json');
   if (existsSync(credsFile)) {
