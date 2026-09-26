@@ -34,11 +34,6 @@ function presentedToken(req) {
  */
 export async function requireAuth(req, res, next) {
   try {
-    const clientIp = socket.handshake.address || socket.conn?.remoteAddress || '';
-    if (socketHandshakeRateLimited(clientIp)) {
-      return next(new Error('Too many connection attempts'));
-    }
-
     const cfg = await getConfig();
     const expected = cfg.authToken;
 
@@ -75,6 +70,10 @@ function socketHandshakeRateLimited(ip) {
 
 export async function socketAuth(socket, next) {
   try {
+    const clientIp = socket.handshake.address || socket.conn?.remoteAddress || '';
+    if (socketHandshakeRateLimited(clientIp)) {
+      return next(new Error('Too many connection attempts'));
+    }
     const cfg = await getConfig();
     const expected = cfg.authToken;
 
@@ -82,7 +81,6 @@ export async function socketAuth(socket, next) {
       socket.handshake.auth?.token ||
       socket.handshake.headers['x-api-token'] ||
       socket.handshake.headers['x-wabot-token'] ||
-      socket.handshake.query?.token ||
       '';
 
     if (token && safeCompare(token, expected)) {
