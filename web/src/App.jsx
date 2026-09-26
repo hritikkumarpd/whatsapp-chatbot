@@ -48,6 +48,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('wabot_theme') === 'dark');
 
   function showToast(message, type = 'success') {
     setToast({ message, type });
@@ -130,14 +131,19 @@ export default function App() {
     }
   }
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+    localStorage.setItem('wabot_theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
   const uniqueContactsCount = new Set(
     logs.filter((l) => l.sender && l.sender !== 'system').map((l) => l.sender)
   ).size;
 
   const isLinked = state.status === 'connected';
-  const profileName = state.profileName || (state.phone === '919471636126' ? 'Hritik Kumar' : (state.phone ? `+${state.phone}` : 'Not linked'));
+  const profileName = state.profileName || (state.phone ? `+${state.phone}` : 'Not linked');
   const profileInitials = (() => {
-    const nameToUse = state.profileName || (state.phone === '919471636126' ? 'Hritik Kumar' : null);
+    const nameToUse = state.profileName || null;
     if (nameToUse) {
       const parts = nameToUse.trim().split(/\s+/).filter(Boolean);
       const letters = parts.slice(0, 2).map((p) => p[0]).join('');
@@ -272,7 +278,7 @@ export default function App() {
         {/* Sidebar Footer */}
         <div className="sidebar-footer">
           <a
-            href="https://github.com"
+            href="https://github.com/hritikkumarpd/whatsapp-chatbot"
             target="_blank"
             rel="noreferrer"
             className="opensource-card"
@@ -290,9 +296,9 @@ export default function App() {
           <div className="local-mode-indicator">
             <span className="local-dot" />
             <div>
-              Local Mode <br />
+              {window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'Local Mode' : 'Remote Mode'} <br />
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: '#64748b' }}>
-                http://localhost:4000
+                {window.location.origin}
               </span>
             </div>
           </div>
@@ -345,7 +351,7 @@ export default function App() {
               </label>
             </div>
 
-            <button className="icon-action-btn" title="Toggle theme">
+            <button className="icon-action-btn" title="Toggle theme" onClick={() => setDarkMode((v) => !v)}>
               <IconMoon size={18} />
             </button>
 
