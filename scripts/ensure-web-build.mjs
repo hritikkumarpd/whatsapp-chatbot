@@ -122,7 +122,7 @@ if (!fs.existsSync(path.join(distDir, 'index.html'))) {
 fs.writeFileSync(
   manifestPath,
   JSON.stringify({
-    sourceHash: hash,
+    sourceHash: sourceHash(),
     builtAt: new Date().toISOString(),
   }, null, 2) + '\n'
 );
