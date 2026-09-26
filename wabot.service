@@ -24,7 +24,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
+User=wabot
+Group=wabot
 WorkingDirectory=/opt/wabot
 ExecStart=/usr/bin/npm start
 Restart=always
@@ -35,6 +36,11 @@ Environment=NODE_ENV=production
 Environment=PORT=4000
 KillSignal=SIGTERM
 TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/wabot/server/auth /opt/wabot/server/config.json /opt/wabot/server/logs /opt/wabot/web/dist
 
 # Sandboxing & Resource constraints for stability on Raspberry Pi / Low-RAM VPS
 LimitNOFILE=65535
