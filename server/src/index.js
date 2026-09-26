@@ -26,6 +26,8 @@ import {
   getActiveSessionCount,
 } from './gemini.js';
 
+if (process.platform !== 'win32') process.umask(0o077);
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
 
