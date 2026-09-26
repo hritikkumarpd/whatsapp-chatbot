@@ -49,7 +49,8 @@ async function atomicWrite(filePath, data) {
   try {
     await rename(tmp, filePath);
   } catch {
-    await writeFile(filePath, jsonStr, 'utf8');
+    await writeFile(filePath, jsonStr, { encoding: 'utf8', mode: 0o600 });
+    try { await chmod(filePath, 0o600); } catch {}
     try {
       await unlink(tmp);
     } catch {}
