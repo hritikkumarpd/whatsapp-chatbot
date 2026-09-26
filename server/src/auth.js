@@ -56,6 +56,14 @@ export async function requireAuth(req, res, next) {
  */
 const socketAttempts = new Map();
 
+const socketAttemptCleanup = setInterval(() => {
+  const cutoff = Date.now() - 60000;
+  for (const [ip, rec] of socketAttempts.entries()) {
+    if (rec.startedAt < cutoff) socketAttempts.delete(ip);
+  }
+}, 60000);
+socketAttemptCleanup.unref?.();
+
 function socketHandshakeRateLimited(ip) {
   const key = ip || 'unknown';
   const now = Date.now();
