@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { existsSync, rmSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs';
+import { existsSync, rmSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, chmodSync } from 'fs';
 import qrcode from 'qrcode';
 import pino from 'pino';
 import makeWASocket, {
