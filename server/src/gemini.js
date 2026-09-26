@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { redactSecrets } from './security.js';
 
 // In-memory conversation state per chat jid:
@@ -67,19 +67,19 @@ function evictOldestSessionIfFull() {
   }
 }
 
-async function callModel(genAI, modelName, systemInstruction, history, userText, temperature = 0.7) {
+async function callModel(ai, modelName, systemInstruction, history, userText, temperature = 0.7) {
   const fortifiedInstruction = (systemInstruction || '').trim() + DEFENSE_SUFFIX;
-  const gModel = genAI.getGenerativeModel({
+  const chat = ai.chats.create({
     model: modelName,
-    systemInstruction: fortifiedInstruction,
-    generationConfig: {
+    history: sanitizeHistory(history),
+    config: {
+      systemInstruction: fortifiedInstruction,
       temperature: Math.max(0.0, Math.min(1.0, temperature || 0.7)),
     },
   });
 
-  const chat = gModel.startChat({ history: sanitizeHistory(history) });
-  const result = await chat.sendMessage(userText);
-  return result.response.text().trim();
+  const result = await chat.sendMessage({ message: userText });
+  return String(result.text || '').trim();
 }
 
 /**
@@ -148,7 +148,7 @@ export async function generateReply({
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
             reply = await callModel(
-              genAI,
+              ai,
               candidateModel,
               systemPrompt,
               session.history,
@@ -213,10 +213,12 @@ export async function verifyApiKey(apiKey, model = 'gemini-3.5-flash-lite') {
     return { ok: false, message: 'API key is empty' };
   }
   try {
-    const genAI = new GoogleGenerativeAI(apiKey.trim());
-    const gModel = genAI.getGenerativeModel({ model: model || 'gemini-3.5-flash-lite' });
-    const res = await gModel.generateContent('Reply with the single word: OK');
-    const txt = res.response.text();
+    const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+    const res = await ai.models.generateContent({
+      model: model || 'gemini-3.5-flash-lite',
+      contents: 'Reply with the single word: OK',
+    });
+    const txt = res.text || '';
     return { ok: true, message: 'Valid API Key', sample: txt.trim() };
   } catch (err) {
     return { ok: false, message: redactSecrets(err.message || 'Verification failed') };
@@ -236,7 +238,7 @@ export async function simulateChat({
 }) {
   if (!apiKey) throw new Error('NO_GEMINI_KEY');
   const safeMessage = String(message || '').slice(0, 4000);
-  const genAI = new GoogleGenerativeAI(apiKey);
+  const ai = new GoogleGenAI({ apiKey });
   const primary = model || 'gemini-3.5-flash-lite';
   const candidates = [primary, 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-latest']
     .filter((m, i, a) => a.indexOf(m) === i);
@@ -248,7 +250,7 @@ export async function simulateChat({
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         reply = await callModel(
-          genAI,
+          ai,
           candidateModel,
           systemPrompt,
           history,
