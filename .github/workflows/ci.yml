@@ -44,6 +44,11 @@ jobs:
           node --check server/src/config.js
           node --check server/src/gemini.js
 
+      - name: Dependency security audit
+        run: |
+          npm --prefix server audit --audit-level=high
+          npm --prefix web audit --audit-level=high
+
       - name: Server tests
         run: npm test
 
