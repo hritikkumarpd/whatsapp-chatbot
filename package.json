@@ -12,12 +12,15 @@
     "cli": "node cli.js",
     "dev": "node --watch server/src/index.js",
     "test": "npm --prefix server test",
-    "build": "npm --prefix web run build",
+    "build": "npm run web:repair",
     "install:all": "npm --prefix server install && npm --prefix web install",
     "termux": "bash termux.sh",
     "setup": "bash setup.sh",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "web:verify": "node scripts/ensure-web-build.mjs",
+    "web:repair": "node scripts/ensure-web-build.mjs --repair",
+    "prestart": "node scripts/ensure-web-build.mjs --repair"
   },
   "keywords": [
     "whatsapp",
