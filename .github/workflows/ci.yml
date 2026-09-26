@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: |
+            package.json
+            server/package.json
+            web/package.json
+
+      - name: Install server dependencies
+        run: npm --prefix server install --no-audit --no-fund
+
+      - name: Install frontend dependencies
+        run: npm --prefix web install --no-audit --no-fund
+
+      - name: Syntax check
+        run: |
+          node --check server/src/index.js
+          node --check server/src/auth.js
+          node --check server/src/security.js
+          node --check server/src/config.js
+          node --check server/src/gemini.js
+
+      - name: Server tests
+        run: npm test
+
+      - name: Production dashboard build
+        run: npm run web:repair
+
+      - name: Verify generated dashboard
+        run: npm run web:verify
