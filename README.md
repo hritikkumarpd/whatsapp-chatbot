@@ -72,7 +72,7 @@ cd whatsapp-chatbot
   start-windows.bat
   ```
 
-Once started, open **`http://localhost:4000`** in your browser, or manage everything right from your terminal using `node cli.js`!
+Once started, open **`http://localhost:4000`** in your browser, or manage everything right from your terminal using `node cli.js`!\n\n> **Deployment safety:** Every normal startup verifies the Vite production dashboard build. If the frontend source has changed or generated assets are missing, WaBot automatically rebuilds the dashboard before starting. You can also run `npm run web:repair` manually.
 
 ---
 
