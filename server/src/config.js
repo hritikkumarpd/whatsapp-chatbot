@@ -13,7 +13,7 @@ export const DEFAULTS = {
   geminiKey: '',
   systemPrompt:
     'You are a smart, natural WhatsApp assistant replying on my behalf. Keep replies concise, conversational and human-like. Automatically detect and match the language, tone, and slang used by the sender. Do not sound like a robotic AI.',
-  model: 'gemini-flash-latest',
+  model: 'gemini-3.5-flash-lite',
   temperature: 0.7,
   autoReply: true,
   replyInGroups: true,
