@@ -9,7 +9,7 @@ import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import readline from 'readline';
-import { spawn, exec } from 'child_process';
+import { spawn, exec, spawnSync } from 'child_process';
 import { freePort } from './server/src/port.js';
 import { getConfig, saveConfig } from './server/src/config.js';
 import { verifyApiKey } from './server/src/gemini.js';
@@ -153,6 +153,18 @@ async function startServer() {
       console.log(`📱 Local UI:     ${c.brightCyan}${BASE_URL}${c.reset}`);
       return;
     }
+  }
+
+  // Always verify/repair the production dashboard before starting the server.
+  // This prevents a stale Vite index.html from referencing missing JS chunks.
+  console.log(\`undefined🔎 Verifying dashboard build...undefined\`);
+  const webCheck = spawnSync(process.execPath, [
+    path.join(ROOT_DIR, 'scripts', 'ensure-web-build.mjs'),
+    '--repair',
+  ], { cwd: ROOT_DIR, stdio: 'inherit' });
+  if (webCheck.status !== 0) {
+    console.log(\`undefined❌ Dashboard build verification failed. Server was not started.undefined\`);
+    return;
   }
 
   // Auto-port liberation: overwrite port 4000 if occupied by a lingering/zombie process
