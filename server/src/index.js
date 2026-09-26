@@ -865,11 +865,35 @@ app.post('/api/clear-logs', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Serve production build if present
+// Serve production build if present.
+// Vite generates content-hashed assets, so cache immutable assets aggressively,
+// but never cache index.html. This prevents browsers/proxies from pairing an
+// old HTML entrypoint with a newer/deleted JS bundle after a deployment.
 const dist = path.join(__dirname, '..', '..', 'web', 'dist');
 if (existsSync(dist)) {
-  app.use(express.static(dist));
-  app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+  app.use(express.static(dist, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (path.basename(filePath) === 'index.html') {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      } else if (filePath.includes(path.sep + 'assets' + path.sep)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
+
+  app.get('*', (req, res, next) => {
+    // Never return index.html for a missing JS/CSS/image asset. Doing so turns
+    // a missing bundle into a confusing browser runtime error.
+    if (req.path.startsWith('/assets/')) {
+      return res.status(404).json({ ok: false, error: 'Frontend asset not found. Rebuild the dashboard.' });
+    }
+    res.sendFile(path.join(dist, 'index.html'), (err) => {
+      if (err) next(err);
+    });
+  });
 }
 
 io.on('connection', (socket) => {
