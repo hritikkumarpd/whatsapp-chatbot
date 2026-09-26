@@ -1,8 +1,19 @@
-// Safety hooks to ensure background daemon never crashes on unhandled promises or socket hiccups
-process.on('uncaughtException', (err) => {
-  console.error('⚠️ [UncaughtException Safeguard]:', err?.message || err);
-});
+// Fatal-process safeguards.
+//
+// An uncaught exception can leave the WhatsApp session, file state, or HTTP
+// server in an unknown state. Log a redacted error and let the process manager
+// restart a clean process instead of continuing in a potentially corrupted state.
+import { redactSecrets } from './security.js';
 
-process.on('unhandledRejection', (reason) => {
-  console.error('⚠️ [UnhandledRejection Safeguard]:', reason?.message || reason);
-});
+let shuttingDown = false;
+
+function fatal(reason, err) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  const message = redactSecrets(err?.stack || err?.message || err || reason);
+  console.error('🛑 [Fatal]', message);
+  setTimeout(() => process.exit(1), 50).unref();
+}
+
+process.on('uncaughtException', (err) => fatal('uncaughtException', err));
+process.on('unhandledRejection', (reason) => fatal('unhandledRejection', reason));
