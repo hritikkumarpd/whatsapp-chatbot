@@ -111,7 +111,8 @@ app.use(cors((req, callback) => {
   const sameOrigin = origin === protocol + '://' + req.get('host');
   if (sameOrigin || isOriginAllowed(origin)) {
     return callback(null, {
-      origin, credentials: true,
+      origin,
+      credentials: true,
       methods: ['GET', 'HEAD', 'POST', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Token', 'X-WaBot-Token'],
       maxAge: 600,
@@ -768,7 +769,10 @@ app.get('/api/state', (_req, res) => {
 app.get('/api/config', async (_req, res) => {
   const cfg = await getConfig();
   const { geminiKey, authToken, ...safeCfg } = cfg;
-  res.json({ ...safeCfg, geminiKeySet: !!geminiKey });
+  res.json({
+    ...safeCfg,
+    geminiKeySet: !!geminiKey,
+  });
 });
 
 app.post('/api/config', async (req, res) => {
@@ -875,14 +879,8 @@ app.post('/api/clear-logs', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Do not expose internal stack traces to remote clients.
-app.use((err, _req, res, _next) => {
-  const message = redactSecrets(err?.message || '');
-  if (message.toLowerCase().includes('cors')) return res.status(403).json({ ok: false, error: 'Origin not allowed' });
-  console.error('HTTP middleware error:', message);
-  return res.status(500).json({ ok: false, error: 'Internal server error' });
-});
-
+// Serve production build if present.
+// Never cache index.html; content-hashed assets can be cached safely.
 const dist = path.join(__dirname, '..', '..', 'web', 'dist');
 if (existsSync(dist)) {
   app.use(express.static(dist, {
@@ -890,14 +888,20 @@ if (existsSync(dist)) {
     setHeaders: (res, filePath) => {
       if (path.basename(filePath) === 'index.html') {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
       } else if (filePath.includes(path.sep + 'assets' + path.sep)) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       }
     },
   }));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/assets/')) return res.status(404).json({ ok: false, error: 'Frontend asset not found. Rebuild the dashboard.' });
-    res.sendFile(path.join(dist, 'index.html'), (err) => { if (err) next(err); });
+    if (req.path.startsWith('/assets/')) {
+      return res.status(404).json({ ok: false, error: 'Frontend asset not found. Rebuild the dashboard.' });
+    }
+    res.sendFile(path.join(dist, 'index.html'), (err) => {
+      if (err) next(err);
+    });
   });
 }
 
@@ -927,30 +931,25 @@ async function gracefulShutdown(signal) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Start the HTTP server without terminating unrelated processes.
 server.on('error', (err) => {
-  console.error('❌ Server startup error:', redactSecrets(err?.message || err));
+  if (err.code === 'EADDRINUSE') {
+    console.error('❌ Port ' + PORT + ' is already in use. Stop the existing instance or choose another PORT.');
+  } else {
+    console.error('❌ Server startup error:', redactSecrets(err?.message || err));
+  }
   process.exit(1);
 });
 
-server.listen(PORT, '0.0.0.0');
-    }, 1000);
-  } else {
-    console.error('❌ Server startup error:', err);
-  }
-});
-
 server.listen(PORT, '0.0.0.0', async () => {
-  const cfg = await getConfig();
-  console.log(`\n=================================================`);
-  console.log(`🚀 WaBot Server is active & listening!`);
-  console.log(`📱 Local:              http://localhost:${PORT}`);
-  localIps.forEach((ip) => {
-    console.log(`🌐 Network / Wi-Fi:   http://${ip}:${PORT}`);
-  });
+  await getConfig();
+  console.log('\n=================================================');
+  console.log('🚀 WaBot Server is active & listening!');
+  console.log('📱 Local:              http://localhost:' + PORT);
+  localIps.forEach((ip) => console.log('🌐 Network / Wi-Fi:   http://' + ip + ':' + PORT));
   console.log('🔐 Web Access Token: protected (not printed to logs)');
-  console.log(`🛡️  Security:          CORS hardened, Loopback auth & Rate-limiting ACTIVE`);
-  console.log(`⚡ Port Guard:        Auto-Port Overwrite Protection ENABLED`);
-  console.log(`=================================================\n`);
+  console.log('🛡️  Security:          CORS, authentication, WebSocket auth & rate-limiting ACTIVE');
+  console.log('=================================================\n');
 
   const credsFile = path.join(__dirname, '..', 'auth', 'creds.json');
   if (existsSync(credsFile)) {
