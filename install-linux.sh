@@ -115,15 +115,9 @@ echo -e "\n${YELLOW}[4/4] Installing WaBot Pro dependencies...${NC}"
 npm --prefix server install --omit=dev --no-audit --no-fund
 echo -e "${GREEN}✓ WaBot Pro dependencies installed successfully!${NC}"
 
-# Verification of prebuilt UI
-if [ -f "web/dist/index.html" ]; then
-    echo -e "${GREEN}✓ Pre-built Dashboard UI is ready.${NC}"
-else
-    echo -e "${YELLOW}Building Dashboard UI...${NC}"
-    npm --prefix web install
-    npm --prefix web run build
-fi
-
+# Verify/repair the production Dashboard UI.
+# Never trust a stale pre-built dist after a source update.
+node scripts/ensure-web-build.mjs --repair
 echo -e "\n${CYAN}========================================================${NC}"
 echo -e "${GREEN}🎉 WaBot Pro is successfully installed on your system!${NC}"
 echo -e "${CYAN}========================================================${NC}"
