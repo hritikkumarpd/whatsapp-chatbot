@@ -15,7 +15,6 @@ const ALLOWED_MODELS = new Set([
   'gemini-flash-latest',
   'gemini-flash-lite-latest',
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
 ]);
 
 const ALLOWED_TYPING_DELAYS = new Set(['realistic', 'fast', 'instant', 'off']);
