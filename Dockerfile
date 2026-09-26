@@ -31,6 +31,7 @@ COPY web/dist/ ./web/dist/
 
 # Copy CLI manager
 COPY cli.js ./cli.js
+COPY scripts/ ./scripts/
 RUN chmod +x ./cli.js && ln -s /app/cli.js /usr/local/bin/wabot
 
 # Declare volumes for persistent WhatsApp session credentials and user configuration
@@ -44,4 +45,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q -O - http://127.0.0.1:4000/api/health || exit 1
 
 # Start command
-CMD ["node", "server/src/index.js"]
+CMD ["npm", "start"]
