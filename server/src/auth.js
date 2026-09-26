@@ -88,7 +88,6 @@ export async function socketAuth(socket, next) {
     }
 
     // Allow automatic handshake for loopback clients connecting from local browser
-    const clientIp = socket.handshake.address || socket.conn?.remoteAddress || '';
     const origin = socket.handshake.headers.origin || '';
     const isLocalOrigin =
       !origin ||
