@@ -157,13 +157,13 @@ async function startServer() {
 
   // Always verify/repair the production dashboard before starting the server.
   // This prevents a stale Vite index.html from referencing missing JS chunks.
-  console.log(\`undefined🔎 Verifying dashboard build...undefined\`);
+  console.log(c.cyan + '🔎 Verifying dashboard build...' + c.reset);
   const webCheck = spawnSync(process.execPath, [
     path.join(ROOT_DIR, 'scripts', 'ensure-web-build.mjs'),
     '--repair',
   ], { cwd: ROOT_DIR, stdio: 'inherit' });
   if (webCheck.status !== 0) {
-    console.log(\`undefined❌ Dashboard build verification failed. Server was not started.undefined\`);
+    console.log(c.brightRed + '❌ Dashboard build verification failed. Server was not started.' + c.reset);
     return;
   }
 
