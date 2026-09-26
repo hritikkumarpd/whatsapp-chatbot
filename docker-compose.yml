@@ -12,8 +12,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4000
-      - WABOT_ALLOW_ANY_ORIGIN=true
-      - TRUST_PROXY=true
+      - WABOT_ALLOW_ANY_ORIGIN=false
+      # Enable TRUST_PROXY=true only when a trusted reverse proxy overwrites X-Forwarded-* headers.
       # Optional: Put your Gemini key and custom domain directly here
       # - GEMINI_API_KEY=your_gemini_api_key_here
       # - WABOT_DOMAIN=wabot.yourdomain.com
