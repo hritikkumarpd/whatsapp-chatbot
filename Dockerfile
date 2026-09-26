@@ -13,7 +13,7 @@ RUN apk add --no-cache bash curl wget tzdata
 # Set production environment
 ENV NODE_ENV=production
 ENV PORT=4000
-ENV WABOT_ALLOW_ANY_ORIGIN=true
+ENV WABOT_ALLOW_ANY_ORIGIN=false
 ENV TRUST_PROXY=true
 
 # Copy package manifests
