@@ -16,7 +16,7 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
 } from '@whiskeysockets/baileys';
 import { getConfig, saveConfig } from './config.js';
-import { requireAuth, socketAuth, isLoopbackIp, rateLimit } from './auth.js';
+import { requireAuth, socketAuth, isLoopbackIp, isLocalOrigin, rateLimit } from './auth.js';
 import { redactSecrets, escapeRegExp, JidLoopBreaker, validateConfigPatch } from './security.js';
 import {
   generateReply,
@@ -744,10 +744,9 @@ app.get('/api/auth/token', async (req, res) => {
   const clientIp = req.socket?.remoteAddress || req.connection?.remoteAddress || '';
   const origin = req.headers.origin || req.headers.referer || '';
   const isLocal = isLoopbackIp(clientIp);
-  const isLocalOrigin =
-    !origin || origin.includes('localhost') || origin.includes('127.0.0.1');
+  const localOriginAllowed = isLocalOrigin(origin);
 
-  if (!isBehindProxy && isLocal && isLocalOrigin) {
+  if (!isBehindProxy && isLocal && localOriginAllowed) {
     const cfg = await getConfig();
     return res.json({ ok: true, token: cfg.authToken });
   }
