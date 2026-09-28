@@ -216,21 +216,57 @@ function isPidAlive(pid) {
 
 function acquireSessionLock() {
   try {
-    if (existsSync(lockFilePath)) {
-      const content = readFileSync(lockFilePath, 'utf8');
-      const data = JSON.parse(content);
-      if (data?.pid && data.pid !== process.pid && isPidAlive(data.pid)) {
-        return { acquired: false, pid: data.pid };
-      }
-    }
     if (!existsSync(authDir)) {
       mkdirSync(authDir, { recursive: true, mode: 0o700 });
     }
     try { chmodSync(authDir, 0o700); } catch {}
-    writeFileSync(lockFilePath, JSON.stringify({ pid: process.pid, time: Date.now() }), 'utf8');
-    return { acquired: true };
+
+    // O_EXCL semantics via the wx flag make acquisition atomic. The previous
+    // read-then-write sequence allowed two processes to observe a missing lock
+    // simultaneously and both start the same WhatsApp session.
+    try {
+      writeFileSync(
+        lockFilePath,
+        JSON.stringify({ pid: process.pid, time: Date.now() }),
+        { encoding: 'utf8', flag: 'wx', mode: 0o600 }
+      );
+      try { chmodSync(lockFilePath, 0o600); } catch {}
+      return { acquired: true };
+    } catch (err) {
+      if (err?.code !== 'EEXIST') throw err;
+    }
+
+    let data = null;
+    try {
+      data = JSON.parse(readFileSync(lockFilePath, 'utf8'));
+    } catch {
+      // A corrupt lock must not silently permit a second WhatsApp session.
+      return { acquired: false, pid: null };
+    }
+
+    if (data?.pid && data.pid !== process.pid && isPidAlive(data.pid)) {
+      return { acquired: false, pid: data.pid };
+    }
+
+    // Stale lock: remove it and atomically compete for it again.
+    try { unlinkSync(lockFilePath); } catch {}
+    try {
+      writeFileSync(
+        lockFilePath,
+        JSON.stringify({ pid: process.pid, time: Date.now() }),
+        { encoding: 'utf8', flag: 'wx', mode: 0o600 }
+      );
+      try { chmodSync(lockFilePath, 0o600); } catch {}
+      return { acquired: true };
+    } catch (err) {
+      if (err?.code === 'EEXIST') {
+        return { acquired: false, pid: data?.pid || null };
+      }
+      throw err;
+    }
   } catch (e) {
-    return { acquired: true };
+    console.error('[Session Lock] Unable to acquire session lock:', redactSecrets(e?.message || e));
+    return { acquired: false, pid: null };
   }
 }
 
