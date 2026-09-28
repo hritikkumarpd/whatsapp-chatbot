@@ -30,6 +30,10 @@ test('validateConfigPatch enforces numeric bounds', () => {
   assert.throws(() => validateConfigPatch({ sessionResetMinutes: -5 }));
   assert.equal(validateConfigPatch({ temperature: 0.5 }).temperature, 0.5);
   assert.equal(validateConfigPatch({ maxHistoryTurns: 14 }).maxHistoryTurns, 14);
+  assert.throws(() => validateConfigPatch({ temperature: '0.5junk' }));
+  assert.throws(() => validateConfigPatch({ temperature: 'Infinity' }));
+  assert.throws(() => validateConfigPatch({ sessionResetMinutes: '10abc' }));
+  assert.throws(() => validateConfigPatch({ maxHistoryTurns: '14.5' }));
 });
 
 test('validateConfigPatch enforces enums and types (type confusion)', () => {
@@ -58,6 +62,7 @@ test('validateConfigPatch enforces the valid Gemini model allow-list', () => {
   assert.throws(() => validateConfigPatch({ model: 'gpt-4' }));
   assert.equal(validateConfigPatch({ model: 'gemini-flash-latest' }).model, 'gemini-flash-latest');
   assert.equal(validateConfigPatch({ model: 'gemini-2.5-flash' }).model, 'gemini-2.5-flash');
+  assert.equal(validateConfigPatch({ model: 'gemini-2.5-flash-lite' }).model, 'gemini-2.5-flash-lite');
   assert.equal(validateConfigPatch({ model: 'gemini-3.8-flash' }).model, 'gemini-3.8-flash');
   assert.equal(validateConfigPatch({ model: 'gemini-3.7-flash' }).model, 'gemini-3.7-flash');
   assert.equal(validateConfigPatch({ model: 'gemini-3.1-flash-lite' }).model, 'gemini-3.1-flash-lite');
