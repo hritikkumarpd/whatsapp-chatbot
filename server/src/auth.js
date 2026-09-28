@@ -17,6 +17,25 @@ export function isLoopbackIp(ip) {
   );
 }
 
+/**
+ * Strictly validate a browser origin used for loopback auto-authentication.
+ * Substring checks such as origin.includes('localhost') are unsafe because
+ * attacker-controlled hosts like localhost.example.com also contain the word.
+ */
+export function isLocalOrigin(origin) {
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname.toLowerCase();
+    return (
+      url.protocol === 'http:' &&
+      (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]')
+    );
+  } catch {
+    return false;
+  }
+}
+
 function presentedToken(req) {
   const header = req.headers['x-api-token'] || req.headers['x-wabot-token'];
   if (typeof header === 'string' && header.trim()) return header.trim();
@@ -97,12 +116,9 @@ export async function socketAuth(socket, next) {
 
     // Allow automatic handshake for loopback clients connecting from local browser
     const origin = socket.handshake.headers.origin || '';
-    const isLocalOrigin =
-      !origin ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1');
+    const localOriginAllowed = isLocalOrigin(origin);
 
-    if (isLoopbackIp(clientIp) && isLocalOrigin) {
+    if (isLoopbackIp(clientIp) && localOriginAllowed) {
       return next();
     }
 
