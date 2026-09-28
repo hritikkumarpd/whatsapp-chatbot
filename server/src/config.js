@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, unlink } from 'fs/promises';
+import { readFile, writeFile, rename, unlink, chmod } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -45,15 +45,19 @@ let cache = null;
 async function atomicWrite(filePath, data) {
   const tmp = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2, 8)}`;
   const jsonStr = JSON.stringify(data, null, 2);
-  await writeFile(tmp, jsonStr, 'utf8');
+  await writeFile(tmp, jsonStr, { encoding: 'utf8', mode: 0o600 });
   try {
+    await chmod(tmp, 0o600);
     await rename(tmp, filePath);
-  } catch {
-    await writeFile(filePath, jsonStr, { encoding: 'utf8', mode: 0o600 });
     try { await chmod(filePath, 0o600); } catch {}
+  } catch (err) {
     try {
-      await unlink(tmp);
-    } catch {}
+      await writeFile(filePath, jsonStr, { encoding: 'utf8', mode: 0o600 });
+      await chmod(filePath, 0o600);
+    } finally {
+      try { await unlink(tmp); } catch {}
+    }
+    if (!existsSync(filePath)) throw err;
   }
 }
 
@@ -70,8 +74,9 @@ export async function getConfig() {
 
   cache = { ...DEFAULTS, ...data };
 
-  // Environment variable overrides take precedence
-  if (process.env.GEMINI_API_KEY && !cache.geminiKey) {
+  // Environment variables are explicit runtime overrides and take precedence
+  // over values persisted in config.json.
+  if (process.env.GEMINI_API_KEY) {
     cache.geminiKey = process.env.GEMINI_API_KEY.trim();
   }
   if (process.env.ADMIN_API_KEY || process.env.WABOT_TOKEN) {
