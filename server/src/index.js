@@ -778,9 +778,26 @@ app.get('/api/auth/token', async (req, res) => {
   // Use the raw TCP peer address, never req.ip / X-Forwarded-For, so a spoofed
   // forwarding header can never make a remote client look like loopback.
   const clientIp = req.socket?.remoteAddress || req.connection?.remoteAddress || '';
-  const origin = req.headers.origin || req.headers.referer || '';
+  const origin = req.headers.origin || '';
   const isLocal = isLoopbackIp(clientIp);
-  const localOriginAllowed = isLocalOrigin(origin);
+  let localOriginAllowed = isLocalOrigin(origin);
+
+  // Do not let an arbitrary localhost web app steal the auto-issued token.
+  // Same-origin access is always valid; Vite dev server :5173 is the only
+  // cross-origin browser origin needed for the local development dashboard.
+  if (origin) {
+    try {
+      const originUrl = new URL(origin);
+      const requestHost = String(req.get('host') || '').split(':')[0].toLowerCase();
+      const hostMatches = originUrl.hostname.toLowerCase() === requestHost;
+      const devOrigin = originUrl.protocol === 'http:' &&
+        (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') &&
+        originUrl.port === '5173';
+      localOriginAllowed = localOriginAllowed && (hostMatches || devOrigin);
+    } catch {
+      localOriginAllowed = false;
+    }
+  }
 
   if (!isBehindProxy && isLocal && localOriginAllowed) {
     const cfg = await getConfig();
