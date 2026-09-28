@@ -7,6 +7,20 @@ const BASE = import.meta.env.DEV ? 'http://localhost:4000' : '';
 let cachedToken = '';
 try {
   cachedToken = localStorage.getItem('wabot_token') || '';
+
+  // CLI-generated links may include ?token=... for first-time remote access.
+  // Consume the token once, persist it locally, and remove it from the URL so
+  // it is not left in browser history, copied links, or referrer data.
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('token');
+  if (urlToken && !cachedToken) {
+    cachedToken = urlToken.trim();
+    localStorage.setItem('wabot_token', cachedToken);
+    params.delete('token');
+    const cleanQuery = params.toString();
+    const cleanUrl = window.location.pathname + (cleanQuery ? '?' + cleanQuery : '') + window.location.hash;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
 } catch {}
 
 const authListeners = new Set();
@@ -75,8 +89,12 @@ async function req(method, url, body) {
   });
 
   if (res.status === 401) {
+    // A stored remote token may have been rotated. Force one fresh resolution
+    // instead of returning the same cached token forever.
+    const previousToken = cachedToken;
+    cachedToken = '';
     const freshToken = await resolveToken();
-    if (freshToken && freshToken !== token) {
+    if (freshToken && freshToken !== token && freshToken !== previousToken) {
       headers['x-api-token'] = freshToken;
       const retryRes = await fetch(BASE + url, {
         method,
