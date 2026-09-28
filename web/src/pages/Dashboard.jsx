@@ -112,14 +112,16 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
       {/* Hero Welcome Header */}
       <div className="hero-header">
         <div>
-          <h1 className="hero-title">Welcome back, Hritik! 👋</h1>
+          <h1 className="hero-title">
+            Welcome back, {state.profileName || (isConnected ? state.phone ? `+${state.phone}` : 'there' : 'there')}! 👋
+          </h1>
           <p className="hero-subtitle">
             Your local WhatsApp bot is ready. Monitor live activity and manage everything in one place.
           </p>
         </div>
 
         <div className="hero-actions">
-          {/* Auto-Reply Master Switch */}
+          {/* Auto-Reply Master Switch — single source of truth (issues #4/#7) */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -134,7 +136,7 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
               <div style={{ fontSize: 12.5, fontWeight: 700, color: cfg?.autoReply ? 'var(--emerald-text)' : '#64748b' }}>
                 {cfg?.autoReply ? '● Auto-Reply ON' : '○ Auto-Reply OFF'}
               </div>
-              <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {cfg?.autoReply ? 'Gemini AI answering' : 'Replies paused'}
               </div>
             </div>
@@ -148,6 +150,7 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
             </label>
           </div>
 
+          {/* Issues #12 & #13: Consolidated status pill — CTA lives only in Device Connection card */}
           <div className="connection-status-pill">
             <span className={`status-dot-indicator ${isConnected ? 'connected' : 'disconnected'}`} />
             <div>
@@ -155,22 +158,10 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
                 {isConnected ? 'Connected' : 'Disconnected'}
               </div>
               <div className="status-label-sub">
-                {isConnected ? `Linked (+${state.phone || ''})` : 'WhatsApp not connected'}
+                {isConnected ? `Linked (+${state.phone || ''})` : 'See Device Connection below'}
               </div>
             </div>
           </div>
-
-          {isConnected ? (
-            <button className="btn-primary-wa danger" onClick={handleDisconnect} disabled={busy}>
-              <IconWhatsApp size={18} />
-              <span>{busy ? 'Disconnecting...' : 'Disconnect WhatsApp'}</span>
-            </button>
-          ) : (
-            <button className="btn-primary-wa" onClick={handleConnect} disabled={busy}>
-              <IconWhatsApp size={18} />
-              <span>{busy ? 'Connecting...' : 'Connect WhatsApp'}</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -307,7 +298,7 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
                     </div>
                     <div className="dashed-title">WhatsApp Session Linked</div>
                     <div className="dashed-sub">
-                      Active session: <b>{state.profileName || 'Hritik Kumar'}</b> (+{state.phone}). The bot is actively responding to incoming messages.
+                      Active session: <b>{state.profileName || (state.phone ? `+${state.phone}` : 'Unknown')}</b>{state.phone ? ` (+${state.phone})` : ''}. The bot is actively responding to incoming messages.
                     </div>
                     <button className="btn-primary-wa danger" onClick={handleDisconnect} disabled={busy}>
                       Disconnect Session
@@ -434,7 +425,8 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
 
         {/* Live Activity Stream Card */}
         <div className="card-container">
-          <div className="card-container-header">
+          {/* Activity Stream header — issue #6: single compact row */}
+          <div className="card-container-header" style={{ gap: 12, flexWrap: 'wrap' }}>
             <div className="card-header-title">
               <IconActivity size={18} />
               <span>Live Activity Stream</span>
@@ -453,12 +445,12 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
                 </label>
               </div>
 
-              <button className="btn" onClick={exportLogs} title="Export activity logs">
+              <button className="btn btn-sm" onClick={exportLogs} title="Export activity logs">
                 <IconDownload size={13} />
                 <span>Export</span>
               </button>
 
-              <button className="btn danger" onClick={onClearLogs} title="Clear stream logs">
+              <button className="btn btn-sm danger" onClick={onClearLogs} title="Clear stream logs">
                 <IconTrash size={13} />
                 <span>Clear</span>
               </button>
@@ -500,10 +492,11 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
 
           {/* Timeline List */}
           <div className="timeline-stream-container">
+            {/* Issue #10 — stronger visual anchor for the empty state */}
             {filteredLogs.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-                <p style={{ fontSize: 13.5, fontWeight: 500 }}>No activity recorded yet</p>
-                <p style={{ fontSize: 12, marginTop: 4 }}>Live incoming messages, AI dispatches and events stream here.</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-muted)' }}>No activity recorded yet</p>
+                <p style={{ fontSize: 13, marginTop: 6 }}>Live incoming messages, AI dispatches and events stream here.</p>
               </div>
             ) : (
               filteredLogs.map((log) => {

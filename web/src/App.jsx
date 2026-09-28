@@ -141,7 +141,8 @@ export default function App() {
   ).size;
 
   const isLinked = state.status === 'connected';
-  const profileName = state.profileName || (state.phone ? `+${state.phone}` : 'Not linked');
+  // Issue #5 — standardise label: use 'Disconnected' everywhere when not linked
+  const profileName = state.profileName || (state.phone ? `+${state.phone}` : 'Disconnected');
   const profileInitials = (() => {
     const nameToUse = state.profileName || null;
     if (nameToUse) {
@@ -297,7 +298,8 @@ export default function App() {
             <span className="local-dot" />
             <div>
               {window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'Local Mode' : 'Remote Mode'} <br />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: '#64748b' }}>
+              {/* Issue #3 — font-size must be ≥12px */}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#64748b' }}>
                 {window.location.origin}
               </span>
             </div>
@@ -326,30 +328,8 @@ export default function App() {
           </div>
 
           <div className="topbar-right">
-            {/* Topbar Auto-Reply quick toggle */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#f8fafc',
-              border: '1px solid var(--border)',
-              padding: '4px 10px',
-              borderRadius: 'var(--radius-md)',
-              fontSize: 12,
-              fontWeight: 600,
-            }}>
-              <span style={{ color: cfg?.autoReply ? 'var(--emerald-text)' : '#64748b' }}>
-                {cfg?.autoReply ? 'Auto-Reply ON' : 'Auto-Reply OFF'}
-              </span>
-              <label className="switch-pill">
-                <input
-                  type="checkbox"
-                  checked={!!cfg?.autoReply}
-                  onChange={toggleMasterAutoReply}
-                />
-                <span className="switch-slider" />
-              </label>
-            </div>
+            {/* Issues #4 & #7: Auto-Reply toggle removed from topbar.
+                The hero section's toggle (with sub-label) is the single source of truth. */}
 
             <button className="icon-action-btn" title="Toggle theme" onClick={() => setDarkMode((v) => !v)}>
               <IconMoon size={18} />
@@ -360,8 +340,14 @@ export default function App() {
               <span className="notification-dot" />
             </button>
 
+            {/* Issue #8 — avatar bg is neutral slate when not linked, green only when connected */}
             <div className="user-profile-widget">
-              <div className="user-avatar-circle">{profileInitials}</div>
+              <div
+                className="user-avatar-circle"
+                style={{ background: isLinked ? 'var(--primary)' : '#94a3b8' }}
+              >
+                {profileInitials}
+              </div>
               <div>
                 <div className="user-meta-name">{profileName}</div>
                 <div className="user-meta-role">{profileRole}</div>
