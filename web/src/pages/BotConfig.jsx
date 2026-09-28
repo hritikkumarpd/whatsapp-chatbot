@@ -317,7 +317,7 @@ export default function BotConfig({ onShowToast }) {
                   <option value="gemini-flash-latest">gemini-flash-latest (Latest stable)</option>
                   <option value="gemini-flash-lite-latest">gemini-flash-lite-latest (Latest Lite)</option>
                   <option value="gemini-2.5-flash">gemini-2.5-flash (Standard 2.5)</option>
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Fast &amp; versatile)</option>
+                  <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (Budget &amp; fast)</option>
                 </select>
               </div>
 
