@@ -366,6 +366,7 @@ export default function App() {
               onClearLogs={handleClearLogs}
               cfg={cfg}
               onToggleAutoReply={toggleMasterAutoReply}
+              onShowToast={showToast}
             />
           )}
 
@@ -433,6 +434,7 @@ export default function App() {
               state={state}
               logs={logs}
               onClearLogs={handleClearLogs}
+              onShowToast={showToast}
             />
           )}
 

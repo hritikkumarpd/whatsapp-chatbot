@@ -18,7 +18,7 @@ import {
   IconGroup,
 } from '../components/Icons.jsx';
 
-export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoReply }) {
+export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoReply, onShowToast }) {
   const [busy, setBusy] = useState(false);
   const [connTab, setConnTab] = useState('qr'); // 'qr' | 'pairing' | 'linked'
   const [phoneInput, setPhoneInput] = useState('');
@@ -43,7 +43,7 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
     try {
       await api.connect();
     } catch (err) {
-      alert(err.message || 'Connection failed');
+      if (onShowToast) onShowToast(err.message || 'Connection failed', 'error');
     } finally {
       setBusy(false);
     }
@@ -56,7 +56,7 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
       await api.disconnect();
       if (onClearLogs) onClearLogs();
     } catch (err) {
-      alert(err.message || 'Failed to disconnect');
+      if (onShowToast) onShowToast(err.message || 'Failed to disconnect', 'error');
     } finally {
       setBusy(false);
     }
@@ -72,7 +72,7 @@ export default function Dashboard({ state, logs, onClearLogs, cfg, onToggleAutoR
         setPairingCode(res.code);
       }
     } catch (err) {
-      alert(err.message || 'Pairing code request failed');
+      if (onShowToast) onShowToast(err.message || 'Pairing code request failed', 'error');
     } finally {
       setBusy(false);
     }
