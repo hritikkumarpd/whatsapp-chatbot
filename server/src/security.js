@@ -15,6 +15,7 @@ const ALLOWED_MODELS = new Set([
   'gemini-flash-latest',
   'gemini-flash-lite-latest',
   'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
 ]);
 
 const ALLOWED_TYPING_DELAYS = new Set(['realistic', 'fast', 'instant', 'off']);
@@ -107,8 +108,15 @@ export function validateConfigPatch(patch) {
   }
 
   if ('temperature' in patch) {
-    const val = Number(patch.temperature);
-    if (Number.isNaN(val) || val < 0 || val > 1.0) {
+    if (typeof patch.temperature !== 'number' && typeof patch.temperature !== 'string') {
+      throw new Error('temperature must be a number between 0.0 and 1.0');
+    }
+    const raw = String(patch.temperature).trim();
+    if (!raw || !/^(?:0|0?\.\d+|1(?:\.0+)?)$/.test(raw)) {
+      throw new Error('temperature must be a number between 0.0 and 1.0');
+    }
+    const val = Number(raw);
+    if (!Number.isFinite(val) || val < 0 || val > 1.0) {
       throw new Error('temperature must be a number between 0.0 and 1.0');
     }
     clean.temperature = Math.round(val * 100) / 100;
@@ -183,16 +191,24 @@ export function validateConfigPatch(patch) {
   }
 
   if ('sessionResetMinutes' in patch) {
-    const val = parseInt(patch.sessionResetMinutes, 10);
-    if (Number.isNaN(val) || val < 0 || val > 10080) {
+    const raw = String(patch.sessionResetMinutes).trim();
+    if (!/^\d+$/.test(raw)) {
+      throw new Error('sessionResetMinutes must be an integer between 0 and 10080 (max 7 days)');
+    }
+    const val = Number(raw);
+    if (!Number.isSafeInteger(val) || val < 0 || val > 10080) {
       throw new Error('sessionResetMinutes must be an integer between 0 and 10080 (max 7 days)');
     }
     clean.sessionResetMinutes = val;
   }
 
   if ('maxHistoryTurns' in patch) {
-    const val = parseInt(patch.maxHistoryTurns, 10);
-    if (Number.isNaN(val) || val < 2 || val > 50) {
+    const raw = String(patch.maxHistoryTurns).trim();
+    if (!/^\d+$/.test(raw)) {
+      throw new Error('maxHistoryTurns must be an integer between 2 and 50');
+    }
+    const val = Number(raw);
+    if (!Number.isSafeInteger(val) || val < 2 || val > 50) {
       throw new Error('maxHistoryTurns must be an integer between 2 and 50');
     }
     clean.maxHistoryTurns = val;
