@@ -1,0 +1,49 @@
+# ========================================================
+# WaBot Pro — Nginx Reverse Proxy Configuration
+# With WebSocket (Socket.IO) & HTTPS (Let's Encrypt Certbot)
+# ========================================================
+#
+# 1. Point your domain DNS "A Record" to your VPS Public IP:
+#      Type: A | Name: wabot (or @) | Value: <YOUR_VPS_IP> | TTL: Auto
+#
+# 2. Copy this file on your VPS:
+#      sudo nano /etc/nginx/sites-available/wabot.conf
+#
+# 3. Enable site & test configuration:
+#      sudo ln -s /etc/nginx/sites-available/wabot.conf /etc/nginx/sites-enabled/
+#      sudo nginx -t
+#      sudo systemctl reload nginx
+#
+# 4. Generate Free HTTPS SSL Certificate via Certbot:
+#      sudo apt install -y certbot python3-certbot-nginx
+#      sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+# ========================================================
+
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # Maximum client payload size (allows sending images/attachments if needed)
+    client_max_body_size 25M;
+
+    location / {
+        # Pass traffic to internal WaBot Pro daemon running on port 4000
+        proxy_pass http://127.0.0.1:4000;
+
+        # HTTP/1.1 and WebSocket Upgrade headers (CRUCIAL for Socket.IO real-time QR & logs)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Forward real client IP and Host headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket timeouts for persistent live session
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+        proxy_buffering off;
+    }
+}

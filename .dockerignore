@@ -1,0 +1,10 @@
+node_modules
+server/node_modules
+web/node_modules
+web/src
+.git
+.github
+*.log
+wabot.pid
+.env.local
+server/auth/.session.lock

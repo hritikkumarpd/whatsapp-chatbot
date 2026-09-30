@@ -1,0 +1,18 @@
+{
+  "authToken": "",
+  "geminiKey": "",
+  "systemPrompt": "You are a smart, natural WhatsApp assistant replying on my behalf. Keep replies concise, conversational and human-like. Automatically detect and match the language, tone, and slang used by the sender. Do not sound like a robotic AI.",
+  "model": "gemini-3.5-flash-lite",
+  "temperature": 0.7,
+  "autoReply": true,
+  "replyInGroups": true,
+  "groupOnlyWhenMentioned": false,
+  "markRead": true,
+  "typingDelay": "realistic",
+  "filterMode": "all",
+  "blacklist": [],
+  "whitelist": [],
+  "customRules": [],
+  "sessionResetMinutes": 60,
+  "maxHistoryTurns": 14
+}

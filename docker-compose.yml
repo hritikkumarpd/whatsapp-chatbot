@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  wabot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wabot-pro
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - WABOT_ALLOW_ANY_ORIGIN=false
+      # Enable TRUST_PROXY=true only when a trusted reverse proxy overwrites X-Forwarded-* headers.
+      # Optional: Put your Gemini key and custom domain directly here
+      # - GEMINI_API_KEY=your_gemini_api_key_here
+      # - WABOT_DOMAIN=wabot.yourdomain.com
+      # - ADMIN_API_KEY=your_secret_token_here
+    volumes:
+      # Persistent WhatsApp authentication session
+      - ./server/auth:/app/server/auth
+      # Persistent configuration (copy server/config.example.json to server/config.json first)
+      - type: bind
+        source: ./server/config.json
+        target: /app/server/config.json
+        bind:
+          create_host_path: false
+      # Logs
+      - ./server/logs:/app/server/logs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:4000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
